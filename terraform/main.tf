@@ -254,7 +254,7 @@ resource "aws_instance" "yt_de_ec2" {
               EOF_ENV
 
               # Start Airflow containers
-              cd /home/ubuntu/yt_de_project && make setup-infra
+              cd /home/ubuntu/yt_de_project && make up
               EOF
 }
 
