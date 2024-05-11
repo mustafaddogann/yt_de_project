@@ -1,0 +1,4 @@
+AIRFLOW_CONN_REDSHIFT=postgres://yt_de_user:ytdeP0ssword0987@host:5439/dev
+AIRFLOW_CONN_AWS_DEFAULT=aws://
+AIRFLOW_VAR_EMR_ID=aws_emr_cluster.yt_de_emr_cluster.id
+AIRFLOW_VAR_BUCKET=aws_s3_bucket.yt_de_data_lake.name
