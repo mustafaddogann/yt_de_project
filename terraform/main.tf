@@ -246,11 +246,11 @@ resource "aws_instance" "yt_de_ec2" {
 
               # Setup Airflow environment variables
               echo "
-              AIRFLOW_CONN_REDSHIFT=postgres://${var.redshift_user}:${var.redshift_password}@${aws_redshift_cluster.sde_redshift_cluster.endpoint}/dev
+              AIRFLOW_CONN_REDSHIFT=postgres://${var.redshift_user}:${var.redshift_password}@${aws_redshift_cluster.yt_de_redshift_cluster.endpoint}/dev
               AIRFLOW_CONN_POSTGRES_DEFAULT=postgres://airflow:airflow@localhost:5439/airflow
               AIRFLOW_CONN_AWS_DEFAULT=aws://?region_name=${var.aws_region}
-              AIRFLOW_VAR_EMR_ID=${aws_emr_cluster.sde_emr_cluster.id}
-              AIRFLOW_VAR_BUCKET=${aws_s3_bucket.sde-data-lake.id}
+              AIRFLOW_VAR_EMR_ID=${aws_emr_cluster.yt_de_emr_cluster.id}
+              AIRFLOW_VAR_BUCKET=${aws_s3_bucket.yt-de-data-lake.id}
               " > env
 
               # Start Airflow containers

@@ -14,9 +14,10 @@ ssh-ec2:
 	ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i private_key.pem ubuntu@$$(terraform -chdir=./terraform output -raw ec2_public_dns) && \
 	rm private_key.pem
 
-# Main target that combines infrastructure setup and key retrieval
 setup-infra: tf-init
 	terraform -chdir=./terraform apply
+
+# Setup containers to run Airflow
 
 docker-spin-up:
 	docker compose --env-file env up airflow-init && \
@@ -24,6 +25,22 @@ docker-spin-up:
 
 perms:
 	mkdir -p logs plugins temp && \
-	chmod -R u=rwx,g=rwx,o=rwx logs plugins temp  # Avoid using sudo in Makefile targets if possible
+	chmod -R u=rwx,g=rwx,o=rwx logs plugins temp  
 
 up: perms docker-spin-up
+
+down:
+	docker compose down
+
+sh:
+	docker exec -ti webserver bash
+
+
+####################################################################################################################
+# Port forwarding to local machine
+
+cloud-metabase:
+	terraform -chdir=./terraform output -raw private_key > private_key.pem && chmod 600 private_key.pem && ssh -o "IdentitiesOnly yes" -i private_key.pem ubuntu@$$(terraform -chdir=./terraform output -raw ec2_public_dns) -N -f -L 3000:$$(terraform -chdir=./terraform output -raw ec2_public_dns):3000 && open http://localhost:3000 && rm private_key.pem
+
+cloud-airflow:
+	terraform -chdir=./terraform output -raw private_key > private_key.pem && chmod 600 private_key.pem && ssh -o "IdentitiesOnly yes" -i private_key.pem ubuntu@$$(terraform -chdir=./terraform output -raw ec2_public_dns) -N -f -L 8080:$$(terraform -chdir=./terraform output -raw ec2_public_dns):8080 && open http://localhost:8080 && rm private_key.pem
