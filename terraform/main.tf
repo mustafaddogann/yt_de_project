@@ -236,7 +236,7 @@ resource "aws_instance" "yt_de_ec2" {
               curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
               echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
               sudo apt-get -y update
-              sudo apt-get -y install docker-ce docker-ce-cli containerd.io
+              sudo apt-get -y install docker-ce docker-ce-cli containerd.io 
               sudo systemctl enable docker
               sudo systemctl start docker
               sudo usermod -aG docker $USER
@@ -245,13 +245,13 @@ resource "aws_instance" "yt_de_ec2" {
               cd /home/ubuntu && git clone https://github.com/mustafaddogann/yt_de_project.git && cd yt_de_project && make perms
 
               # Setup Airflow environment variables
-              cat <<EOF_ENV > /home/ubuntu/airflow.env
-              AIRFLOW_CONN_REDSHIFT=postgres://${var.redshift_user}:${var.redshift_password}@${aws_redshift_cluster.yt_de_redshift_cluster.endpoint}/dev
+              echo "
+              AIRFLOW_CONN_REDSHIFT=postgres://${var.redshift_user}:${var.redshift_password}@${aws_redshift_cluster.sde_redshift_cluster.endpoint}/dev
               AIRFLOW_CONN_POSTGRES_DEFAULT=postgres://airflow:airflow@localhost:5439/airflow
               AIRFLOW_CONN_AWS_DEFAULT=aws://?region_name=${var.aws_region}
-              AIRFLOW_VAR_EMR_ID=${aws_emr_cluster.yt_de_emr_cluster.id}
-              AIRFLOW_VAR_BUCKET=${aws_s3_bucket.yt-de-data-lake.id}
-              EOF_ENV
+              AIRFLOW_VAR_EMR_ID=${aws_emr_cluster.sde_emr_cluster.id}
+              AIRFLOW_VAR_BUCKET=${aws_s3_bucket.sde-data-lake.id}
+              " > env
 
               # Start Airflow containers
               cd /home/ubuntu/yt_de_project && make up
