@@ -36,7 +36,6 @@
 #
 # Feel free to modify this file to suit your needs.
 ---
-version: '3'
 x-airflow-common:
   &airflow-common
   build:
@@ -54,15 +53,21 @@ x-airflow-common:
     AIRFLOW_CONN_AWS_DEFAULT: ${AIRFLOW_CONN_AWS_DEFAULT}
     AIRFLOW_VAR_EMR_ID: ${AIRFLOW_VAR_EMR_ID}
     AIRFLOW_VAR_BUCKET: ${AIRFLOW_VAR_BUCKET}
+    AIRFLOW_VAR_KAGGLE_USERNAME: 'mustafadogan01'
+    AIRFLOW_VAR_KAGGLE_KEY: 'f6ae390d4b7028beaa001217c69d83b7' 
+
+
+    
   volumes:
+    # - /Users/mustafa/.kaggle/kaggle.json:/root/.kaggle/kaggle.json:ro
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - ./tests:/opt/airflow/tests
     - ./data:/opt/airflow/data
     - ./temp:/opt/airflow/temp
-    - ./migrations:/opt/airflow/migrations
-    - ./spectrum_tables:/opt/airflow/spectrum_tables
+    - ./kaggle:/opt/airflow/kaggle
+
   user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}"
   depends_on:
     postgres:

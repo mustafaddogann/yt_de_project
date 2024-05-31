@@ -37,7 +37,7 @@ variable "redshift_user" {
   description = "AWS user name for Redshift"
   type        = string
   default     = "yt_de_user"
-}
+} 
 
 variable "redshift_password" {
   description = "AWS password for Redshift"

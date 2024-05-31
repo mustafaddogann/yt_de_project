@@ -2,8 +2,8 @@ AIRFLOW_CONN_REDSHIFT=postgres://yt_de_user:ytdeP0ssword0987@host:5439/dev
 AIRFLOW_CONN_AWS_DEFAULT=aws://
 AIRFLOW_VAR_EMR_ID=aws_emr_cluster.yt_de_emr_cluster.id
 AIRFLOW_VAR_BUCKET=aws_s3_bucket.yt_de_data_lake.name
-KAGGLE_USERNAME=mustafadogan01
-KAGGLE_KEY=f6ae390d4b7028beaa001217c69d83b7
+AIRFLOW_VAR_KAGGLE_USERNAME=mustafadogan01
+AIRFLOW_VAR_KAGGLE_KEY=6a8b8bff06fc69bbb92ea990e28bb0da 
 
 
 

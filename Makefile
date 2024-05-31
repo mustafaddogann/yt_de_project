@@ -8,7 +8,7 @@ infra-up:
 infra-down:
 	terraform -chdir=./terraform destroy
 
-ssh-ec2:
+ssh-ec2:.
 	terraform -chdir=./terraform output -raw private_key > private_key.pem && \
 	chmod 600 private_key.pem && \
 	ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i private_key.pem ubuntu@$$(terraform -chdir=./terraform output -raw ec2_public_dns) && \
@@ -24,16 +24,19 @@ docker-spin-up:
 	docker compose --env-file env up --build -d
 
 perms:
-	mkdir -p logs plugins temp && \
-	chmod -R u=rwx,g=rwx,o=rwx logs plugins temp  
+	mkdir -p logs plugins temp kaggle && sudo chmod -R u=rwx,g=rwx,o=rwx logs plugins temp dags tests kaggle migrations spectrum_tables
 
 up: perms docker-spin-up
 
 down:
 	docker compose down
 
-sh:
+shw:
 	docker exec -ti webserver bash
+
+
+shs:
+	docker exec -ti scheduler bash
 
 
 ####################################################################################################################
@@ -44,3 +47,9 @@ cloud-metabase:
 
 cloud-airflow:
 	terraform -chdir=./terraform output -raw private_key > private_key.pem && chmod 600 private_key.pem && ssh -o "IdentitiesOnly yes" -i private_key.pem ubuntu@$$(terraform -chdir=./terraform output -raw ec2_public_dns) -N -f -L 8080:$$(terraform -chdir=./terraform output -raw ec2_public_dns):8080 && open http://localhost:8080 && rm private_key.pem
+
+
+####################################################################################################################
+# Create tables in Warehouse
+spectrum-migration:
+	./spectrum_migrate.sh

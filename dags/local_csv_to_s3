@@ -1,0 +1,33 @@
+from datetime import datetime, timedelta
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
+from airflow.hooks.S3_hook import S3Hook
+from airflow.models import Variable
+import shutil
+
+def move_file_to_s3():
+    # Define your local file path
+    local_file_path = '/Users/mustafa/Downloads/kaggle_youtube.zip'
+    
+    # Define your S3 destination
+    s3_bucket_name = Variable.get("BUCKET")
+    s3_key = 'path/in/s3/file.txt'
+    
+    # Move the file to S3 using S3Hook
+    hook = S3Hook(aws_conn_id='aws_default')
+    hook.load_file(local_file_path, s3_key, bucket_name=s3_bucket_name,unzip=True)
+
+default_args = {
+    'owner': 'airflow',
+    'start_date': datetime(2024, 5, 15),
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+}
+
+with DAG('local_to_s3_transfer', default_args=default_args, schedule_interval=None) as dag:
+    move_file_task = PythonOperator(
+        task_id='move_file_to_s3',
+        python_callable=move_file_to_s3,
+    )
+
+move_file_task
