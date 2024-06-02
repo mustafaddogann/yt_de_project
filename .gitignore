@@ -28,8 +28,8 @@ __pycache__
 # policy
 trust-policy.json
 
-# data
-data*
+# # data
+# data*
 
 # logs
 logs/*

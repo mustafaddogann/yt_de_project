@@ -226,47 +226,49 @@ resource "aws_instance" "yt_de_ec2" {
   }
 
   user_data = <<-EOF
-              #!/bin/bash
-              echo "-------------------------START AIRFLOW SETUP---------------------------"
-              # Update packages and install necessary tools
-              sudo apt-get -y update
-              sudo apt-get -y install ca-certificates curl gnupg lsb-release
-              sudo apt -y install unzip
-             
+ #!/bin/bash
 
-              # Install Docker
-              # curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-              # echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-              echo \
-                "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-                $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-              
-              sudo apt-get -y update
-              sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
-              sudo chmod 666 /var/run/docker.sock
+echo "-------------------------START AIRFLOW SETUP---------------------------"
+sudo apt-get -y update
 
-              sudo apt install make
-              # sudo systemctl enable docker
-              # sudo systemctl start docker
-              # sudo usermod -aG docker $USER
+sudo apt-get -y install \
+ca-certificates \
+curl \
+gnupg \
+lsb-release
 
-              # Clone git repo to EC2
-              cd /home/ubuntu && git clone https://github.com/mustafaddogann/yt_de_project.git && cd yt_de_project && make perms
+sudo apt -y install unzip
 
-              echo 'Setup Airflow environment variables'
-              echo "
-              AIRFLOW_CONN_REDSHIFT=postgres://${var.redshift_user}:${var.redshift_password}@${aws_redshift_cluster.yt_de_redshift_cluster.endpoint}/dev
-              AIRFLOW_CONN_POSTGRES_DEFAULT=postgres://airflow:airflow@localhost:5439/airflow
-              AIRFLOW_CONN_AWS_DEFAULT=aws://?region_name=${var.aws_region}
-              AIRFLOW_VAR_EMR_ID=${aws_emr_cluster.yt_de_emr_cluster.id}
-              AIRFLOW_VAR_BUCKET=${aws_s3_bucket.yt-de-data-lake.id}
-              " > env
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
-              echo 'Start Airflow containers'
-              # cd /home/ubuntu/yt_de_project && 
-              make up
-              echo "-------------------------END AIRFLOW SETUP---------------------------"
-              EOF
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get -y update
+sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo chmod 666 /var/run/docker.sock
+
+sudo apt install make
+
+echo 'Clone git repo to EC2'
+cd /home/ubuntu && git clone https://github.com/mustafaddogann/yt_de_project.git && cd yt_de_project && make perms
+
+echo 'Setup Airflow environment variables'
+echo "
+AIRFLOW_CONN_REDSHIFT=postgres://${var.redshift_user}:${var.redshift_password}@${aws_redshift_cluster.yt_de_redshift_cluster.endpoint}/dev
+AIRFLOW_CONN_POSTGRES_DEFAULT=postgres://airflow:airflow@localhost:5439/airflow
+AIRFLOW_CONN_AWS_DEFAULT=aws://?region_name=${var.aws_region}
+AIRFLOW_VAR_EMR_ID=${aws_emr_cluster.yt_de_emr_cluster.id}
+AIRFLOW_VAR_BUCKET=${aws_s3_bucket.yt-de-data-lake.id}
+" > env
+
+echo 'Start Airflow containers'
+make up
+
+echo "-------------------------END AIRFLOW SETUP---------------------------"
+ 
+ EOF
 }
 
 
