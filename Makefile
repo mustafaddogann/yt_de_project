@@ -24,7 +24,7 @@ docker-spin-up:
 	docker compose --env-file env up --build -d
 
 perms:
-	mkdir -p logs plugins temp kaggle && sudo chmod -R u=rwx,g=rwx,o=rwx logs plugins temp dags tests kaggle migrations spectrum_tables
+	mkdir -p logs plugins temp kaggle tests migrations && sudo chmod -R u=rwx,g=rwx,o=rwx logs plugins temp dags tests kaggle migrations spectrum_tables
 
 up: perms docker-spin-up
 
