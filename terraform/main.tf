@@ -225,7 +225,7 @@ resource "aws_instance" "yt_de_ec2" {
     Name = "yt_de_ec2"
   }
 
-  user_data = <<-EOF
+  user_data = <<EOF
  #!/bin/bash
 
 echo "-------------------------START AIRFLOW SETUP---------------------------"
@@ -268,11 +268,12 @@ make up
 
 echo "-------------------------END AIRFLOW SETUP---------------------------"
  
- EOF
+EOF
+
 }
 
 
-
+# Setting as budget monitor, so we don't go over 10 USD per month
 resource "aws_budgets_budget" "cost" {
   budget_type  = "COST"
   limit_amount = "10"
