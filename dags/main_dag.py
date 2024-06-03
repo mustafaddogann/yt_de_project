@@ -72,8 +72,7 @@ top_1000_youtubers_to_stage_data_lake = PythonOperator(
     op_kwargs={
         "file_name": "/opt/airflow/temp/top_1000_youtubers.csv",
         "key": "stage/top_1000_youtubers/{{ ds }}/top_1000_youtubers.csv",
-        # "bucket_name": BUCKET_NAME,
-        "bucket_name" : "yt-de-data-lake-20240602070509510300000003",
+        "bucket_name": BUCKET_NAME,
         "remove_local": "true",
     },
 )
