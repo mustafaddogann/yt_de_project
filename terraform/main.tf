@@ -4,22 +4,22 @@ resource "aws_s3_bucket" "yt-de-data-lake" {
   force_destroy = true
 }
 
-##Enable server-side encryption(SSE-S3)
-resource "aws_kms_key" "mykey" {
-  description             = "This key is used to encrypt bucket objects"
-  deletion_window_in_days = 10
-}
+# ##Enable server-side encryption(SSE-S3)
+# resource "aws_kms_key" "mykey" {
+#   description             = "This key is used to encrypt bucket objects"
+#   deletion_window_in_days = 10
+# }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "example" {
-  bucket = aws_s3_bucket.yt-de-data-lake.id
+# resource "aws_s3_bucket_server_side_encryption_configuration" "example" {
+#   bucket = aws_s3_bucket.yt-de-data-lake.id
 
-  rule {
-    apply_server_side_encryption_by_default {
-      kms_master_key_id = aws_kms_key.mykey.arn
-      sse_algorithm     = "aws:kms"
-    }
-  }
-}
+#   rule {
+#     apply_server_side_encryption_by_default {
+#       kms_master_key_id = aws_kms_key.mykey.arn
+#       sse_algorithm     = "aws:kms"
+#     }
+#   }
+# }
 
 
 # IAM role for EC2 to connect to AWS Redshift, S3, & EMR
@@ -214,63 +214,63 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical
 }
 
-resource "aws_instance" "yt_de_ec2" {
+resource "aws_instance" "sde_ec2" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
 
   key_name             = aws_key_pair.generated_key.key_name
-  security_groups      = [aws_security_group.yt_de_security_group.name]
-  iam_instance_profile = aws_iam_instance_profile.yt_de_ec2_iam_role_instance_profile.id
+  security_groups      = [aws_security_group.sde_security_group.name]
+  iam_instance_profile = aws_iam_instance_profile.sde_ec2_iam_role_instance_profile.id
   tags = {
-    Name = "yt_de_ec2"
+    Name = "sde_ec2"
   }
 
   user_data = <<EOF
- #!/bin/bash
+#!/bin/bash
+LOGFILE=/var/log/user-data.log
 
-echo "-------------------------START AIRFLOW SETUP---------------------------"
-sudo apt-get -y update
+echo "-------------------------START AIRFLOW SETUP---------------------------" >> $LOGFILE
+sudo apt-get -y update >> $LOGFILE 2>&1
 
 sudo apt-get -y install \
 ca-certificates \
 curl \
 gnupg \
-lsb-release
+lsb-release >> $LOGFILE 2>&1
 
-sudo apt -y install unzip
+sudo apt -y install unzip >> $LOGFILE 2>&1
 
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg >> $LOGFILE 2>&1
 
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null >> $LOGFILE 2>&1
 
-sudo apt-get -y update
-sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
-sudo chmod 666 /var/run/docker.sock
+sudo apt-get -y update >> $LOGFILE 2>&1
+sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin >> $LOGFILE 2>&1
+sudo chmod 666 /var/run/docker.sock >> $LOGFILE 2>&1
 
-sudo apt install make
+sudo apt install make >> $LOGFILE 2>&1
 
-echo 'Clone git repo to EC2'
-cd /home/ubuntu && git clone https://github.com/mustafaddogann/yt_de_project.git && cd yt_de_project && make perms
+echo 'Clone git repo to EC2' >> $LOGFILE
+cd /home/ubuntu && git clone https://github.com/josephmachado/beginner_de_project.git && cd beginner_de_project && make perms >> $LOGFILE 2>&1
 
-echo 'Setup Airflow environment variables'
+echo 'Setup Airflow environment variables' >> $LOGFILE
 echo "
-AIRFLOW_CONN_REDSHIFT=postgres://${var.redshift_user}:${var.redshift_password}@${aws_redshift_cluster.yt_de_redshift_cluster.endpoint}/dev
+AIRFLOW_CONN_REDSHIFT=postgres://${var.redshift_user}:${var.redshift_password}@${aws_redshift_cluster.sde_redshift_cluster.endpoint}/dev
 AIRFLOW_CONN_POSTGRES_DEFAULT=postgres://airflow:airflow@localhost:5439/airflow
 AIRFLOW_CONN_AWS_DEFAULT=aws://?region_name=${var.aws_region}
-AIRFLOW_VAR_EMR_ID=${aws_emr_cluster.yt_de_emr_cluster.id}
-AIRFLOW_VAR_BUCKET=${aws_s3_bucket.yt-de-data-lake.id}
-" > env
+AIRFLOW_VAR_EMR_ID=${aws_emr_cluster.sde_emr_cluster.id}
+AIRFLOW_VAR_BUCKET=${aws_s3_bucket.sde-data-lake.id}
+" > env >> $LOGFILE 2>&1
 
-echo 'Start Airflow containers'
-make up
+echo 'Start Airflow containers' >> $LOGFILE
+make up >> $LOGFILE 2>&1
 
-echo "-------------------------END AIRFLOW SETUP---------------------------"
- 
+echo "-------------------------END AIRFLOW SETUP---------------------------" >> $LOGFILE
 EOF
-
 }
+
 
 
 # Setting as budget monitor, so we don't go over 10 USD per month
