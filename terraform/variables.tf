@@ -1,52 +1,21 @@
-## AWS account level config: region
-variable "aws_region" {
-  description = "AWS region"
+variable "project_id" {
+  description = "GCP project ID"
   type        = string
-  default     = "us-east-1"
 }
 
-## AWS S3 bucket details
-variable "bucket_prefix" {
-  description = "Bucket prefix for our datalake"
+variable "region" {
+  description = "GCP region for the GCS bucket"
   type        = string
-  default     = "yt-de-data-lake-"
+  default     = "US"
 }
 
-## Key to allow connection to our EC2 instance
-variable "key_name" {
-  description = "EC2 key name"
+variable "bq_location" {
+  description = "BigQuery dataset location (US or EU multi-region keeps free-tier scope wide)"
   type        = string
-  default     = "yt-de-key"
+  default     = "US"
 }
 
-## AWS EMR node type and auto termination time (EMR is expensive!)
-variable "instance_type" {
-  description = "Instance type for EMR and EC2"
+variable "bucket_name" {
+  description = "GCS bucket name for the raw landing zone. Must be globally unique."
   type        = string
-  default     = "m4.xlarge"
-}
-
-variable "auto_termination_timeoff" {
-  description = "Auto EMR termination time(in idle seconds)"
-  type        = number
-  default     = 14400 # 4 hours
-}
-
-## AWS Redshift credentials and node type
-variable "redshift_user" {
-  description = "AWS user name for Redshift"
-  type        = string
-  default     = "yt_de_user"
-} 
-
-variable "redshift_password" {
-  description = "AWS password for Redshift"
-  type        = string
-  default     = "ytdeP0ssword0987"
-}
-
-variable "redshift_node_type" {
-  description = "AWS Redshift node  type"
-  type        = string
-  default     = "dc2.large"
 }
