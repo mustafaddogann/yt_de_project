@@ -41,7 +41,11 @@ with DAG(
     clean = PythonOperator(
         task_id="clean_csv",
         python_callable=clean_csv,
-        op_kwargs={"input_file": RAW_CSV, "output_file": CLEAN_CSV},
+        op_kwargs={
+            "input_file": RAW_CSV,
+            "output_file": CLEAN_CSV,
+            "load_date": "{{ ds }}",
+        },
     )
 
     upload = PythonOperator(
@@ -65,20 +69,6 @@ with DAG(
         autodetect=True,
         write_disposition="WRITE_TRUNCATE",
         time_partitioning={"type": "DAY", "field": "load_date"},
-    )
-
-    # GCSToBigQueryOperator doesn't add load_date — patch it on after load.
-    stamp_bronze = BigQueryInsertJobOperator(
-        task_id="stamp_bronze_load_date",
-        configuration={
-            "query": {
-                "query": (
-                    f"UPDATE `{PROJECT}.bronze.raw_youtube_stats` "
-                    "SET load_date = DATE('{{ ds }}') WHERE load_date IS NULL"
-                ),
-                "useLegacySql": False,
-            }
-        },
     )
 
     build_silver = BigQueryInsertJobOperator(
@@ -125,5 +115,5 @@ with DAG(
         params={"project": PROJECT},
     )
 
-    clean >> upload >> load_bronze >> stamp_bronze >> build_silver
+    clean >> upload >> load_bronze >> build_silver
     build_silver >> build_gold_dims >> build_gold_facts >> build_gold_marts

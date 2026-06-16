@@ -13,9 +13,9 @@ SELECT
   f.uploads,
   ROW_NUMBER() OVER (PARTITION BY c.country ORDER BY f.subscribers DESC) AS country_rank
 FROM `{{ params.project }}.gold.fact_channel_metrics` f
-JOIN `{{ params.project }}.gold.dim_channel`  ch  USING (channel_key)
-JOIN `{{ params.project }}.gold.dim_country`  c   USING (country_key)
-JOIN `{{ params.project }}.gold.dim_category` cat USING (category_key)
+JOIN `{{ params.project }}.gold.dim_channel`  ch  ON ch.channel_key  = f.channel_key
+JOIN `{{ params.project }}.gold.dim_country`  c   ON c.country_key   = f.country_key
+JOIN `{{ params.project }}.gold.dim_category` cat ON cat.category_key = f.category_key
 QUALIFY country_rank <= 10;
 
 -- Aggregated country-level performance.
