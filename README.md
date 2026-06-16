@@ -70,12 +70,13 @@ are safe and idempotent on the snapshot data.
 
 ## DAG
 
+![Airflow DAG run](docs/images/dag-output.png)
+
 ```
-clean_csv → upload_to_gcs → load_bronze → stamp_bronze_load_date
-                                            └→ build_silver
-                                                  └→ build_gold_dims
-                                                        └→ build_gold_facts
-                                                              └→ build_gold_marts
+clean_csv → upload_to_gcs → load_bronze → build_silver
+                                              └→ build_gold_dims
+                                                    └→ build_gold_facts
+                                                          └→ build_gold_marts
 ```
 
 ## Sample queries
