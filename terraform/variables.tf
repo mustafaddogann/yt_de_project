@@ -1,21 +1,39 @@
 variable "project_id" {
-  description = "GCP project ID"
+  description = "Dedicated project per environment"
   type        = string
 }
-
 variable "region" {
-  description = "GCP region for the GCS bucket"
+  description = "Landing bucket location, compatible with BigQuery"
   type        = string
   default     = "US"
 }
-
 variable "bq_location" {
-  description = "BigQuery dataset location (US or EU multi-region keeps free-tier scope wide)"
-  type        = string
-  default     = "US"
+  type    = string
+  default = "US"
 }
-
 variable "bucket_name" {
-  description = "GCS bucket name for the raw landing zone. Must be globally unique."
-  type        = string
+  type = string
+}
+variable "environment" {
+  type    = string
+  default = "dev"
+  validation {
+    condition     = contains(["dev", "prod"], var.environment)
+    error_message = "Environment must be dev or prod."
+  }
+}
+variable "analyst_members" {
+  description = "IAM principal strings; no real identities in committed configuration"
+  type        = list(string)
+  default     = []
+}
+variable "orchestrator_members" {
+  description = "Principals permitted to impersonate runtime identities"
+  type        = list(string)
+  default     = []
+}
+variable "platform_admin_members" {
+  description = "Deployment principals only; runtime identities excluded"
+  type        = list(string)
+  default     = []
 }

@@ -1,0 +1,8 @@
+project_id = "your-youtube-dev-project"
+bucket_name = "your-globally-unique-youtube-dev-landing"
+environment = "dev"
+region = "US"
+bq_location = "US"
+analyst_members = []
+orchestrator_members = []
+platform_admin_members = []

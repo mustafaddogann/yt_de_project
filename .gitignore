@@ -17,6 +17,7 @@ kaggle/kaggle.json
 gcp/
 *.json
 !data/*.json
+!contracts/*.json
 
 # Logs / runtime
 logs/

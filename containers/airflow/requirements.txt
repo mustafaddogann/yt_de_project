@@ -1,4 +1,2 @@
-apache-airflow-providers-google>=10.17.0
-pandas>=2.0
-kaggle>=1.6
+apache-airflow-providers-google==10.21.0
 SQLAlchemy>=1.4,<2.0
