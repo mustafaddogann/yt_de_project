@@ -1,0 +1,13 @@
+# Operations
+
+Execution timestamp is when a task runs. ingestion_timestamp records initial accepted delivery loading. snapshot_date describes source observation, independent of execution. This CSV has no business effective date; none is manufactured.
+
+Run identity is SHA256(DAG ID plus Airflow run ID), stable across task retries and different for a new manual run. First registration is STARTED, then RUNNING. Final states are SUCCEEDED, FAILED, PARTIAL (Bronze succeeded but a later task failed), or SKIPPED for disabled control. A cleared run reopens its existing audit row; historical task attempts remain. Step records contain attempt, status and cloud job metrics where available. Initialization failure records FAILED when audit storage is reachable. If ops itself is unavailable, Airflow logs remain the fallback; do not claim audit completeness under control-plane outages.
+
+Each delivery retains checksum and source URI. The original bytes remain in GCS without automatic expiration. Bronze checks existing date/checksum row count before skipping a replay and uses a deterministic BigQuery load job ID to recover ambiguous completions. A terminal failed load appends no rows. Runtime reattaches running/succeeded jobs and selects the next deterministic recovery suffix only after confirming a terminal failed job, with a ten-attempt bound. A source correction uses a new checksum.
+
+pipeline_control.active state and source path/name affect runtime. Target routing is checked against the supported pipeline. DQ cannot be disabled. Schedule, frequency, watermark and retention fields are descriptive, not a generic scheduling or deletion engine. Use administrator UPDATE statements for reviewed control changes.
+
+Monitoring queries use ops and fact tables. Layer row counts are counts of accepted selected snapshots. DML affected rows and bytes are nullable because load jobs and script parent jobs do not expose identical statistics. The framework does not claim exact inserted versus updated business counters or full per-statement script costs. Retrying quarantine persistence can repeat reject records by attempt; query DISTINCT run_id,row_number,record_json,reasons for unique rejects.
+
+ops.pipeline_snapshot records the currently published checksum for each date. It changes inside the fact transaction, so same-checksum correction replays do not repeatedly require approval and rollback to an older retained checksum requires correction approval. Bronze history alone is not used as a current-version marker. Silver/fact run_id preserves initial source ingestion lineage; transformation executions are tracked independently in ops step runs.

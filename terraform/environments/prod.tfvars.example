@@ -1,0 +1,8 @@
+project_id = "your-youtube-prod-project"
+bucket_name = "your-globally-unique-youtube-prod-landing"
+environment = "prod"
+region = "US"
+bq_location = "US"
+analyst_members = []
+orchestrator_members = []
+platform_admin_members = []

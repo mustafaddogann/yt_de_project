@@ -16,6 +16,7 @@ FROM `{{ params.project }}.gold.fact_channel_metrics` f
 JOIN `{{ params.project }}.gold.dim_channel`  ch  ON ch.channel_key  = f.channel_key
 JOIN `{{ params.project }}.gold.dim_country`  c   ON c.country_key   = f.country_key
 JOIN `{{ params.project }}.gold.dim_category` cat ON cat.category_key = f.category_key
+WHERE f.snapshot_date=(SELECT MAX(snapshot_date) FROM `{{ params.project }}.gold.fact_channel_metrics`)
 QUALIFY country_rank <= 10;
 
 -- Aggregated country-level performance.
@@ -31,6 +32,7 @@ SELECT
   AVG(f.views_per_subscriber)       AS avg_views_per_subscriber
 FROM `{{ params.project }}.gold.fact_channel_metrics` f
 JOIN `{{ params.project }}.gold.dim_country` c USING (country_key)
+WHERE f.snapshot_date=(SELECT MAX(snapshot_date) FROM `{{ params.project }}.gold.fact_channel_metrics`)
 GROUP BY c.country, c.country_code, c.population;
 
 -- Category-level performance (which content type wins).
@@ -45,4 +47,5 @@ SELECT
   AVG(f.avg_views_per_upload) AS avg_views_per_upload
 FROM `{{ params.project }}.gold.fact_channel_metrics` f
 JOIN `{{ params.project }}.gold.dim_category` cat USING (category_key)
+WHERE f.snapshot_date=(SELECT MAX(snapshot_date) FROM `{{ params.project }}.gold.fact_channel_metrics`)
 GROUP BY cat.category, cat.channel_type;

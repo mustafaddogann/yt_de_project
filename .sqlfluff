@@ -1,0 +1,6 @@
+[sqlfluff]
+dialect = bigquery
+templater = jinja
+rules = CP01
+[sqlfluff:templater:jinja:context]
+params = {"project": "test-project"}

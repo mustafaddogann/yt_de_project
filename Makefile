@@ -26,3 +26,18 @@ shw:
 
 shs:
 	docker exec -ti yt-de-airflow-scheduler bash
+
+# Credential-free quality checks
+check:
+	python -m ruff check dags scripts tests
+	python -m ruff format --check dags scripts tests
+	python -m pytest -q
+	python scripts/validate_repository.py
+	python -m sqlfluff lint sql --dialect bigquery
+
+bootstrap:
+	python scripts/bootstrap.py
+
+# Set SNAPSHOT_DATE from the actual source observation, never from wall clock.
+trigger:
+	docker compose exec airflow-scheduler airflow dags trigger youtube_de_pipeline --conf '{"snapshot_date":"$(SNAPSHOT_DATE)"}'

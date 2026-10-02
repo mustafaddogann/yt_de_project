@@ -8,17 +8,22 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     AIRFLOW__WEBSERVER__SECRET_KEY: local-dev-secret-key
     PYTHONPATH: /opt/airflow/dags
-    GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/gcp/sa.json
-    AIRFLOW_VAR_GCP_PROJECT_ID: ${GCP_PROJECT_ID}
-    AIRFLOW_VAR_GCS_LANDING_BUCKET: ${GCS_LANDING_BUCKET}
-    AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT: google-cloud-platform://?extra__google_cloud_platform__key_path=%2Fopt%2Fairflow%2Fgcp%2Fsa.json&extra__google_cloud_platform__project=${GCP_PROJECT_ID}
+    GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/gcp/adc.json
+    GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+    GCS_LANDING_BUCKET: ${GCS_LANDING_BUCKET}
+    BQ_LOCATION: ${BQ_LOCATION:-US}
+    MAXIMUM_BYTES_BILLED: ${MAXIMUM_BYTES_BILLED:-1000000000}
+    INGESTION_SERVICE_ACCOUNT: ${INGESTION_SERVICE_ACCOUNT:-}
+    TRANSFORMATION_SERVICE_ACCOUNT: ${TRANSFORMATION_SERVICE_ACCOUNT:-}
+    AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT: "google-cloud-platform://"
   volumes:
     - ./dags:/opt/airflow/dags
     - ./sql:/opt/airflow/sql
+    - ./contracts:/opt/airflow/contracts
     - ./data:/opt/airflow/data
     - ./logs:/opt/airflow/logs
     - ./temp:/opt/airflow/temp
-    - ${GCP_SA_KEY_PATH}:/opt/airflow/gcp/sa.json:ro
+    - ${GCP_ADC_PATH}:/opt/airflow/gcp/adc.json:ro
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     postgres:

@@ -1,143 +1,58 @@
-# YouTube Stats ELT to BigQuery
+# YouTube snapshot data platform
 
-Small ELT project: pull the Kaggle "Global YouTube Statistics 2023" CSV,
-land it in GCS, load it into BigQuery, and build a Bronze → Silver → Gold
-dimensional model with country, category, and per-channel marts.
+A portfolio ELT implementation using production data engineering patterns: explicit source contracts, retained deliveries, audited runs, recoverable snapshot processing and scoped access. The business problem is comparing channel metrics by country and content category without double-counting repeated source deliveries.
 
-Originally targeted AWS (Redshift + EMR + S3); reworked onto GCP because
-BigQuery's free tier is generous enough to run this forever at zero cost.
-
-## Stack
-
-- Python 3.11 — pandas for cleaning
-- Apache Airflow 2.9 — Docker, LocalExecutor on Postgres metadata
-- Google Cloud — GCS for raw landing, BigQuery for the warehouse
-- Terraform — provisions the bucket and BigQuery datasets
-- Metabase — optional BI on `localhost:3000`
+The checked-in Kaggle Global YouTube Statistics 2023 extract is static public data. This is not a live YouTube feed, an employer system or a production-proven deployment. Its 995 rows have no immutable channel ID or embedded observation date. Operators must supply the source observation date. Processing the same extract under invented dates does not establish real history.
 
 ## Architecture
 
 ```mermaid
-flowchart LR
-    A["Kaggle CSV<br/>(local)"] --> B["Airflow<br/>(Docker)"]
-    B --> C["GCS raw landing"]
-    C --> D["BigQuery BRONZE<br/>raw_youtube_stats"]
-    D --> E["BigQuery SILVER<br/>stg_channel"]
-    E --> F["BigQuery GOLD<br/>dims + facts + marts"]
-    F --> G["Metabase / Looker Studio"]
+flowchart TD
+    Source["CSV source contract"] --> Airflow["Airflow manual snapshot"]
+    Airflow --> Landing["GCS immutable delivery"]
+    Landing --> Bronze["BigQuery Bronze"]
+    Bronze --> Silver["Validated Silver snapshot"]
+    Silver --> Gold["Dimensions and snapshot facts"]
+    Gold --> Marts["Latest snapshot marts"]
+    Airflow --> Ops["Control, run, step and DQ tables"]
 ```
 
-## Warehouse layers
+## Engineering behavior
 
-- **BRONZE** — `bronze.raw_youtube_stats`, day-partitioned on `load_date`
-- **SILVER** — `silver.stg_channel` (typed, deduped, NULL handling)
-- **GOLD dims** — `dim_country`, `dim_category`, `dim_channel`
-- **GOLD fact** — `fact_channel_metrics` (subs, views, uploads, earnings ranges, derived ratios)
-- **GOLD marts** — `mart_top_channels_by_country`, `mart_country_performance`, `mart_category_performance`
+| Concern | Implemented behavior |
+| :--- | :--- |
+| History | Content addressed source objects; date/checksum delivery deduplication in Bronze; retained Silver/fact date partitions |
+| Grain | One normalized channel name per snapshot date; provisional key limitation is explicit |
+| Incremental processing | Selected Silver/fact partition replaced atomically; dimensions MERGE; latest marts refreshed |
+| Control | One ops control row supplies active state, source path, source name and supported routing at runtime |
+| Auditing | Run and step status, timestamps, attempts, source checksum/count, layer counts, job ID, available job bytes/DML counts |
+| Quality | Strict schema/count contract, duplicates and numeric rejects, row-loss assertions, fact relationship assertions |
+| Recovery | Same date/checksum replay; changed delivery requires explicit correction flag |
+| Access | Ingestion and transformation service accounts; scoped dataset grants; analyst read access; separate deployment privileges |
+| Masking | Separate synthetic contacts table with authorized masked view; no real PII |
+| Cost | Date filters, partitioned snapshots, clustered keys and per-query bytes cap; no benchmark claims |
+| CI | Python lint/format/tests, SQLFluff BigQuery parse/lint, configuration checks, narrow secret-pattern checks, Terraform checks and real DAG import in Docker |
 
-Silver and Gold use `CREATE OR REPLACE TABLE ... AS SELECT`, so reruns
-are safe and idempotent on the snapshot data.
+## Local setup
 
-## Setup
+Use Python 3.11, Docker Compose, Terraform >=1.6 and a personal GCP project with billing. Cloud execution has costs; no zero-cost guarantee. Create a fresh DEV project before migrating an existing deployment.
 
-1. **GCP** — create the project, enable APIs, create a service account,
-   download the key, run Terraform. Step-by-step in
-   [`docs/gcp_setup.md`](docs/gcp_setup.md).
+1. Read [deployment.md](docs/deployment.md) and [rbac.md](docs/rbac.md).
+2. Provision Terraform using an uncommitted environment variable file and isolated state.
+3. Authenticate with `gcloud auth application-default login`. Set `.env` from `.env.example`, including the ADC file path.
+4. Install development tools with `python -m pip install -r requirements-dev.txt`; run `make check`.
+5. Install `google-cloud-bigquery` to run the administrator bootstrap. Export `GCP_PROJECT_ID` and `BQ_LOCATION`; run `make bootstrap`.
+6. Start Airflow with `make up`. Open http://localhost:8080 with local-only admin/admin credentials. Keep this service bound to a trusted machine; do not expose this development stack publicly.
+7. Trigger explicitly: `make trigger SNAPSHOT_DATE=2023-08-01`. This is an example date; substitute the actual source observation date.
 
-2. **Local env**:
+The Docker image pins Airflow and provider versions using the matching constraints file. Routine tasks use ADC and optionally impersonate the two Terraform-created runtime identities. Unset impersonation variables select development mode, whose effective permissions are those of the ADC principal.
 
-   ```bash
-   cp .env.example .env
-   ```
+## Repository
 
-   Fill in `GCP_PROJECT_ID`, `GCS_LANDING_BUCKET`, and the absolute path
-   to the service account JSON.
+`dags/` holds orchestration and runtime adapters. `contracts/` contains the CSV contract. `sql/bigquery/` contains administrator initialization and layer SQL; `sql/operations/` answers operational questions. `terraform/` contains one reusable environment configuration. `tests/` contains local tests and a real Airflow import test. `docs/` records architecture, grain, security, operations and decisions.
 
-3. **Kaggle CSV** — already in `data/Global YouTube Statistics.csv`.
-   If you want a fresh pull, drop the CSV in `data/` with the same name.
+## Validation and tradeoffs
 
-4. **Start Airflow**:
+Offline checks cannot establish cloud SQL behavior or IAM enforcement. Follow [deployment smoke checks](docs/deployment.md) before claiming cloud execution works. SCD2 is intentionally omitted: this source cannot support trustworthy channel identity across renames. Historical facts preserve country/category, while channel display attributes are Type 1. Control is deliberately bounded to one source; descriptive retention and schedule fields do not enforce deletion or scheduling. No dbt, streaming stack, generic onboarding engine or additional cloud is introduced.
 
-   ```bash
-   make up
-   ```
-
-   First boot pulls the Airflow image and builds the custom one with
-   `apache-airflow-providers-google` — give it a few minutes.
-
-5. Open <http://localhost:8080> (admin / admin), enable
-   `youtube_de_pipeline`, trigger it.
-
-## DAG
-
-![Airflow DAG run](docs/images/dag-output.png)
-
-```
-clean_csv → upload_to_gcs → load_bronze → build_silver
-                                              └→ build_gold_dims
-                                                    └→ build_gold_facts
-                                                          └→ build_gold_marts
-```
-
-## Sample queries
-
-Top 10 channels per country:
-
-```sql
-SELECT country, country_rank, channel_name, category, subscribers, video_views
-FROM `yt-de-project.gold.mart_top_channels_by_country`
-WHERE country IN ('United States', 'India', 'Brazil')
-ORDER BY country, country_rank;
-```
-
-Country performance, ranked by subscribers per capita:
-
-```sql
-SELECT country, channel_count, total_subscribers,
-       ROUND(subscribers_per_capita, 4) AS subs_per_capita
-FROM `yt-de-project.gold.mart_country_performance`
-WHERE population IS NOT NULL
-ORDER BY subscribers_per_capita DESC NULLS LAST
-LIMIT 20;
-```
-
-Categories ranked by average views per upload:
-
-```sql
-SELECT category, channel_count,
-       ROUND(avg_views_per_upload, 0) AS avg_views_per_upload
-FROM `yt-de-project.gold.mart_category_performance`
-ORDER BY avg_views_per_upload DESC NULLS LAST;
-```
-
-## Notes / gotchas
-
-- **Airflow + SQLAlchemy 2.x don't mix.** The image pins `SQLAlchemy<2.0`
-  for that reason. If you bump providers, check the resolved version.
-- **Free tier reality.** This project's data is ~270 KB. You can rerun
-  the DAG hundreds of times a month and not register on the BigQuery
-  bill. If you scale it, partition pruning matters — that's why the
-  bronze table is day-partitioned even though we only load one snapshot.
-- **`load_date` patch step.** `GCSToBigQueryOperator` autodetect doesn't
-  add the partition column itself, so the DAG runs an `UPDATE` right
-  after the load. Cleaner alternative: build the table with an explicit
-  schema and stamp `load_date` in pandas before upload. Left as a TODO.
-- **One service account.** It has `bigquery.admin` and `storage.admin`
-  scoped to the project. For real production, split into per-task SAs
-  and tighten to `bigquery.dataEditor` / `storage.objectAdmin`.
-
-## Roadmap
-
-- [ ] Split SQL into dbt models on top of `silver.stg_channel`
-- [ ] Pull the Kaggle CSV inside the DAG instead of relying on the
-      checked-in copy
-- [ ] Add a Looker Studio dashboard reading from the gold marts
-- [ ] Switch to incremental `MERGE` once there's >1 snapshot
-- [ ] Pytest suite for the SQL (sqlglot or dbt-osmosis style checks)
-
-## History
-
-This repo started as an AWS pipeline (Redshift + Spectrum + EMR +
-Airflow on EC2). The git log up to mid-2024 reflects that. Cost and
-complexity didn't match the size of the dataset, so it was reworked
-onto GCP/BigQuery in 2026.
+Earlier AWS implementation remains in git history; obsolete AWS DAG code was removed. The existing screenshot at `docs/images/dag-output.png` depicts the previous DAG and is not evidence for this upgrade.
