@@ -33,6 +33,12 @@ flowchart TD
 | Cost | Date filters, partitioned snapshots, clustered keys and per-query bytes cap; no benchmark claims |
 | CI | Python lint/format/tests, SQLFluff BigQuery parse/lint, configuration checks, narrow secret-pattern checks, Terraform checks and real DAG import in Docker |
 
+## Inspect the completed project without GCP
+
+Start with the [complete project plan](docs/project_plan.md). It maps all requested features to their code and design artifacts, includes the fact/dimension diagram and synthetic masking output, and records completed repository phases. The [repository walkthrough](docs/project_walkthrough.md) shows snapshot, rejection and audit examples. GCP setup is not required to inspect or present these definitions.
+
+Medallion architecture, modeling, masking and IAM are implemented as repository definitions. Live cloud provisioning and enforcement are not claimed. Provisioning instructions below are for a later execution stage, not a prerequisite for reviewing this project.
+
 ## Local setup
 
 Use Python 3.11, Docker Compose, Terraform >=1.6 and a personal GCP project with billing. Cloud execution has costs; no zero-cost guarantee. Create a fresh DEV project before migrating an existing deployment.
