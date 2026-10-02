@@ -11,7 +11,7 @@ from unittest.mock import patch
 with patch("airflow.models.Variable.get", side_effect=AssertionError("Parse-time Variable access")):
     bag = DagBag(dag_folder="/opt/airflow/dags", include_examples=False)
 assert not bag.import_errors, bag.import_errors
-dag = bag.get_dag("youtube_de_pipeline")
+dag = bag.dags["youtube_de_pipeline"]
 assert dag.max_active_runs == 1 and dag.schedule_interval is None
 assert len(dag.tasks) == 8
 assert dag.get_task("finalize").trigger_rule == "all_done"

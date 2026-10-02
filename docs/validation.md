@@ -9,7 +9,9 @@ Validated in this execution workspace:
 * Terraform 1.9.8 recursive formatting passed; provider initialization downloaded signed google 5.45.2.
 * git diff whitespace validation passed.
 
-Not validated here:
+GitHub CI additionally passed Terraform provider schema validation and the pinned Docker image build. The real DagBag import check reads the parsed in-memory DAG, avoiding an unnecessary metadata database lookup.
+
+Not validated in the local workspace:
 
 * Terraform validate cannot start the provider: listen unix socket operation not permitted in this environment. This is a runtime restriction, not a successful provider schema check.
 * Docker build/start and real Airflow DagBag import could not run because Docker is unavailable. CI includes those checks with the pinned image.
